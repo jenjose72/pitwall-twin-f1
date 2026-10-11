@@ -1,0 +1,129 @@
+version: '3.8'
+
+# PitWall Twin - Minimal setup for testing
+# Remove Spark services if image pull fails (optional for demo)
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - pitwall
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - pitwall
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - pitwall
+
+  influxdb:
+    image: influxdb:1.8
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: pitwall
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: admin_password
+      INFLUXDB_HTTP_AUTH_ENABLED: "false"
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+    networks:
+      - pitwall
+
+  grafana:
+    image: grafana/grafana:9.5.3
+    depends_on:
+      - influxdb
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./dashboards/f1_telemetry_dashboard.json:/etc/grafana/provisioning/dashboards/f1_telemetry_dashboard.json
+      - ./dashboards/dashboard-provisioning.yml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yml
+      - ./dashboards/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    networks:
+      - pitwall
+
+  # Note: Spark services commented out due to image availability
+  # For production use, uncomment and ensure bitnami/spark:3.5.0 is available
+  # spark-master:
+  #   image: bitnami/spark:3.5.0
+  #   ...
+
+  kafka-bridge:
+    build:
+      context: .
+      dockerfile: docker/kafka-bridge/Dockerfile
+    depends_on:
+      - kafka
+      - influxdb
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      INFLUXDB_HOST: influxdb
+      INFLUXDB_PORT: 8086
+      INFLUXDB_DATABASE: pitwall
+    volumes:
+      - ./kafka_to_influxdb_http.py:/app/kafka_to_influxdb_http.py
+    networks:
+      - pitwall
+    command: python kafka_to_influxdb_http.py
+
+  replayer:
+    build:
+      context: .
+      dockerfile: docker/replayer/Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      F1_CACHE_DIR: /data/f1_cache
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./data:/data
+    networks:
+      - pitwall
+    # Just start without running automatically - user will run docker-compose run replayer
+    command: tail -f /dev/null
+
+volumes:
+  influxdb-data:
+  grafana-data:
+
+networks:
+  pitwall:
+    driver: bridge
