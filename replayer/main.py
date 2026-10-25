@@ -72,17 +72,17 @@ class F1Replayer:
                 time.sleep(max(0, wait_time - (time.time() - self.replay_start_time)))
 
                 msg = {
-                    'timestamp': row['Time'].isoformat() if row['Time'] else None,
+                    'timestamp': row['Time'].isoformat() if row['Time'] is not None else None,
                     'driver': str(driver),
-                    'speed': float(row['Speed']) if row['Speed'] else None,
-                    'rpm': float(row['RPM']) if row['RPM'] else None,
-                    'throttle': float(row['Throttle']) if row['Throttle'] else None,
-                    'brake': float(row['Brake']) if row['Brake'] else None,
-                    'gear': int(row['Gear']) if row['Gear'] else None,
-                    'drs': int(row['DRS']) if row['DRS'] else None,
-                    'x': float(row['X']) if row['X'] else None,
-                    'y': float(row['Y']) if row['Y'] else None,
-                    'z': float(row['Z']) if row['Z'] else None,
+                    'speed': float(row['Speed']) if row['Speed'] is not None else None,
+                    'rpm': float(row['RPM']) if row['RPM'] is not None else None,
+                    'throttle': float(row['Throttle']) if row['Throttle'] is not None else None,
+                    'brake': float(row['Brake']) if row['Brake'] is not None else None,
+                    'gear': int(row['Gear']) if row['Gear'] is not None else None,
+                    'drs': int(row['DRS']) if row['DRS'] is not None else None,
+                    'x': float(row['X']) if row['X'] is not None else None,
+                    'y': float(row['Y']) if row['Y'] is not None else None,
+                    'z': float(row['Z']) if row['Z'] is not None else None,
                     'session_time': time_offset,
                 }
 

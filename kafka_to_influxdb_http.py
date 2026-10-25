@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 KAFKA_SERVERS = 'kafka:29092'
 INFLUXDB_URL = 'http://influxdb:8086'
-DATABASE = 'pitwall'
+DATABASE = 'f1'
 
 logger.info(f"✓ Kafka: {KAFKA_SERVERS}")
 logger.info(f"✓ InfluxDB: {INFLUXDB_URL}")
@@ -38,20 +38,38 @@ try:
 
             if topic == 'f1.telemetry':
                 driver = val.get('driver', 'unknown')
-                ts = int(float(str(val.get('timestamp', time.time()))) * 1e9)
+                timestamp_str = val.get('timestamp', time.time())
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                    ts = int(dt.timestamp() * 1e9)
+                except:
+                    ts = int(float(timestamp_str) * 1e9) if isinstance(timestamp_str, (int, float)) else int(time.time() * 1e9)
                 point = f"f1_telemetry,driver={driver} speed={val.get('speed',0)},rpm={val.get('rpm',0)},throttle={val.get('throttle',0)},brake={val.get('brake',0)},gear={val.get('gear',0)},drs={val.get('drs',0)} {ts}"
                 points.append(point)
 
             elif topic == 'f1.residuals':
                 driver = val.get('driver', 'unknown')
-                ts = int(float(str(val.get('timestamp', time.time()))) * 1e9)
+                timestamp_str = val.get('timestamp', time.time())
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                    ts = int(dt.timestamp() * 1e9)
+                except:
+                    ts = int(float(timestamp_str) * 1e9) if isinstance(timestamp_str, (int, float)) else int(time.time() * 1e9)
                 res = val.get('residuals', {})
                 point = f"f1_residuals,driver={driver} speed_residual={res.get('speed',0)},rpm_residual={res.get('rpm',0)} {ts}"
                 points.append(point)
 
             elif topic == 'f1.alerts':
                 driver = val.get('driver', 'unknown')
-                ts = int(float(str(val.get('timestamp', time.time()))) * 1e9)
+                timestamp_str = val.get('timestamp', time.time())
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                    ts = int(dt.timestamp() * 1e9)
+                except:
+                    ts = int(float(timestamp_str) * 1e9) if isinstance(timestamp_str, (int, float)) else int(time.time() * 1e9)
                 point = f"f1_alerts,driver={driver},type={val.get('type','unknown')} severity={val.get('severity',0)} {ts}"
                 points.append(point)
 

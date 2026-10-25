@@ -103,6 +103,20 @@ services:
       - pitwall
     command: python kafka_to_influxdb_http.py
 
+  kafka-producer:
+    build:
+      context: .
+      dockerfile: docker/kafka-producer/Dockerfile
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_HOST: kafka:29092
+    volumes:
+      - .:/app
+    networks:
+      - pitwall
+    command: python3 kafka_mock_producer.py
+
   replayer:
     build:
       context: .
@@ -117,8 +131,6 @@ services:
       - ./data:/data
     networks:
       - pitwall
-    # Just start without running automatically - user will run docker-compose run replayer
-    command: tail -f /dev/null
 
 volumes:
   influxdb-data:

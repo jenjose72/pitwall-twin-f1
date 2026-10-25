@@ -45,7 +45,7 @@ class TwinService:
         # Drift detection (E1, E2 modes)
         self.drift_gate = DriftGate(
             channels=self.twin.channels,
-            drift_threshold=0.05,
+            adwin_threshold=0.05,
         )
 
         # Fleet consensus (E2 mode only)

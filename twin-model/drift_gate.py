@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import numpy as np
 
 
 @dataclass

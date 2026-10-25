@@ -5,12 +5,6 @@ datasources:
     type: influxdb
     access: proxy
     url: http://influxdb:8086
-    database: pitwall
+    database: f1
     httpMode: GET
-    jsonData:
-      version: Flux
-      organization: main
-      defaultBucket: pitwall
-    secureJsonData:
-      token: ""
     editable: true
